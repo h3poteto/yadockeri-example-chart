@@ -1,0 +1,96 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}-web-deployment
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: {{ .Release.Name }}-web
+spec:
+  replicas: {{ .Values.web.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ .Release.Name }}-web
+  template:
+    metadata:
+      labels:
+        app: {{ .Release.Name }}-web
+      annotations:
+        app.kubernetes.io/instance: {{ .Release.Name }}
+      {{- if .Values.web.annotations }}
+        {{- toYaml .Values.web.annotations | nindent 8 }}
+      {{- end }}
+    spec:
+    {{- with .Values.web.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+      securityContext:
+        {{- toYaml .Values.web.podSecurityContext | nindent 8 }}
+      initContainers:
+        - name: migration
+          securityContext:
+            {{- toYaml .Values.web.securityContext | nindent 12 }}
+          image: "{{ .Values.web.image.repository }}:{{ .Values.web.image.tag }}"
+          imagePullPolicy: {{ .Values.web.image.pullPolicy }}
+          args: ["bundle", "exec", "rake", "db:migrate"]
+          env:
+            - name: RAILS_ENV
+              value: production
+            - name: SECRET_KEY_BASE
+              value: 1c2ed8ace2de954ce6f9df8748926f74f1933fcf1585dee40b72c7c55d3a33b760f3f8f0b8a8ef08e62882028045ee6fd4c232d05cabe35d6419688a456634f0
+            - name: DB_HOST
+              value: {{ .Release.Name }}-db-service
+            - name: DB_USERNAME
+              value: master
+            - name: DB_PASSWORD
+              value: docker
+            - name: DB_NAME
+              value: yadockeri_example
+          resources:
+            {{- toYaml .Values.web.resources | nindent 12 }}
+      containers:
+        - name: rails
+          securityContext:
+            {{- toYaml .Values.web.securityContext | nindent 12 }}
+          image: "{{ .Values.web.image.repository }}:{{ .Values.web.image.tag }}"
+          imagePullPolicy: {{ .Values.web.image.pullPolicy }}
+          args: ["bundle", "exec", "rails", "s", "-e", "production"]
+          env:
+            - name: RAILS_ENV
+              value: production
+            - name: SECRET_KEY_BASE
+              value: 1c2ed8ace2de954ce6f9df8748926f74f1933fcf1585dee40b72c7c55d3a33b760f3f8f0b8a8ef08e62882028045ee6fd4c232d05cabe35d6419688a456634f0
+            - name: DB_HOST
+              value: {{ .Release.Name }}-db-service
+            - name: DB_USERNAME
+              value: master
+            - name: DB_PASSWORD
+              value: docker
+            - name: DB_NAME
+              value: yadockeri_example
+          ports:
+            - name: http
+              containerPort: 3000
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+          resources:
+            {{- toYaml .Values.web.resources | nindent 12 }}
+      {{- with .Values.web.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    {{- with .Values.web.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+    {{- with .Values.web.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
