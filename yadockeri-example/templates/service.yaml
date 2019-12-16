@@ -1,9 +1,8 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ include "yadockeri-example.fullname" . }}
-  labels:
-{{ include "yadockeri-example.labels" . | indent 4 }}
+  name: {{ .Release.Name }}-service
+  namespace: {{ .Values.namespace }}
 spec:
   type: {{ .Values.service.type }}
   ports:
@@ -12,5 +11,19 @@ spec:
       protocol: TCP
       name: http
   selector:
-    app.kubernetes.io/name: {{ include "yadockeri-example.name" . }}
-    app.kubernetes.io/instance: {{ .Release.Name }}
+    app: {{ .Release.Name }}-web
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Release.Name }}-db-service
+  namespace: {{ .Values.namespace }}
+spec:
+  type: ClusterIP
+  ports:
+    - port: 5432
+      targetPort: 5432
+      protocol: TCP
+      name: postgres
+  selector:
+    app: {{ .Release.Name }}-db
