@@ -51,5 +51,11 @@ db:
       memory: 1000Mi
 
 service:
-  type: ClusterIP
+  type: NodePort
   port: 80
+
+ingress:
+  security_group: {}
+  subnets: {}
+
+base_host: "lapras.io"
