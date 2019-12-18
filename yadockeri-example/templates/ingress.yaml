@@ -1,0 +1,24 @@
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: {{ .Release.Name }}-ingress
+  namespace: {{ .Values.namespace }}
+  annotations:
+    kubernetes.io/ingress.class: alb
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS": 443}]'
+    alb.ingress.kubernetes.io/security-groups: {{ .Values.ingress.security_group }}
+    alb.ingress.kubernetes.io/subnets: {{ .Values.ingress.subnets }}
+    alb.ingress.kubernetes.io/healthcheck-path: /
+    external-dns.alpha.kubernetes.io/hostname: {{ template "yadockeri-example.hostname" . }}
+  labels:
+    app: {{ .Release.Name }}
+spec:
+  rules:
+    - host: {{ template "yadockeri-example.hostname" . }}
+      http:
+        paths:
+          - path: /*
+            backend:
+              serviceName: {{ .Release.Name }}-web
+              servicePort: {{ .Values.service.port }}
